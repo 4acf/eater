@@ -5,12 +5,13 @@ bl_info = {
 }
 
 import bpy
+import math
+import random
 
 class TreeNode:
     def __init__(self, x):
         self.obj = x
-        self.left = None
-        self.right = None
+        self.nodes = []
 
 ### OPERATORS
 
@@ -37,6 +38,7 @@ class EATER_add_selected_objs(bpy.types.Operator):
                 item = scn.selected_objs.add()
                 item.name = obj.name
                 item.obj = obj
+                scn.selected_objs_index = len(scn.selected_objs) - 1
         else:
             self.report({'INFO'}, 'Nothing selected in viewport, no objects added')
         return {'FINISHED'}
@@ -111,17 +113,65 @@ class EATER_execute(bpy.types.Operator):
     def execute(self, context):
         scn = context.scene
         
-        ### steps ###
-        # create an object to store our arguments
-        # use these arguments to call the correct functions
-        # make sure that every object in the list IS STILL AN EXISTING OBJECT
-        # follow the access template below to send the correct array
+        if len(scn.selected_objs) == 0:
+            self.report({'INFO'}, 'No objects selected, no changes were made')
+            return {'CANCELLED'}
         
-        ### ACCESS TEMPLATE ###
-        #for item in scn.selected_objs:
-            #obj = item.obj
-            #obj.location.x += 1.0
+        bpy.ops.object.select_all(action='DESELECT')
         
+        # read parameters
+        frame_step = scn.eater_props.frame_step
+        object_step = scn.eater_props.object_step
+        process_order = scn.eater_props.process_order
+        starting_point = None
+        if process_order == 'LOCATION':
+            starting_point = scn.eater_props.starting_point
+            if starting_point == None:
+                self.report({'INFO'}, 'No starting point selected, no changes were made')
+                return {'CANCELLED'}
+        start_visibility = scn.eater_props.start_visibility
+        cur_frame = scn.eater_props.start_frame
+        buffer_frame = scn.eater_props.start_frame - 1
+        
+        # keyframing for random mode
+        if process_order == 'RANDOM':
+            choices = []
+            for i in range(len(scn.selected_objs)):
+                choices.append(i)
+                
+            random.shuffle(choices)
+            
+            for i in range(len(choices)):
+                
+                # digging through types to get to the data we want 
+                item = scn.selected_objs[choices[i]]
+                obj = item.obj
+                
+                try:
+                    view_layer_obj = scn.objects[obj.name]
+                except:
+                    self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
+                    continue
+                else:
+                    obj.hide_render = start_visibility == 'INVISIBLE'
+                    obj.hide_viewport = obj.hide_render
+                    obj.keyframe_insert('hide_render', frame=buffer_frame)
+                    obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                    
+                    obj.hide_render = not obj.hide_render
+                    obj.hide_viewport = not obj.hide_viewport
+                    obj.keyframe_insert('hide_render', frame=cur_frame)
+                    obj.keyframe_insert('hide_viewport', frame=cur_frame)
+                    
+                    if (i + 1) % object_step == 0:
+                        cur_frame += frame_step
+                
+        # todo: keyframing for location-based mode        
+        elif process_order == 'LOCATION':
+            # find mst using prim's
+            # run bfs from starting_point obj
+            pass
+                  
         return {'FINISHED'}
         
 ### UI
@@ -160,8 +210,8 @@ class EATER_Props(bpy.types.PropertyGroup):
     
     process_order: bpy.props.EnumProperty(
         items = (
-                    ('0', 'Random', 'The next objects to be affected are chosen at random'),
-                    ('1', 'Location-based', 'The next objects to be affected are based on proximity to the last affected objects')
+                    ('RANDOM', 'Random', 'The next objects to be affected are chosen at random'),
+                    ('LOCATION', 'Location-based', 'The next objects to be affected are based on proximity to the last affected objects')
                 )
     )
     
@@ -172,8 +222,8 @@ class EATER_Props(bpy.types.PropertyGroup):
     
     start_visibility: bpy.props.EnumProperty(
         items = (
-                    ('0', 'Start Visible', 'Objects start visible and are gradually toggled invisible'),
-                    ('1', 'Start Invisible', 'Objects start invisible and are gradually toggled visible')
+                    ('VISIBLE', 'Start Visible', 'Objects start visible and are gradually toggled invisible'),
+                    ('INVISIBLE', 'Start Invisible', 'Objects start invisible and are gradually toggled visible')
                 )
     )
     
@@ -230,7 +280,7 @@ class EATER_UI(bpy.types.Panel):
         ### ALGORITHM CONTROLS ###
         row = layout.row()
         row.prop(eater_props, 'process_order', expand=True)
-        if eater_props.process_order == '1':
+        if eater_props.process_order == 'LOCATION':
             layout.label(text='Starting point:')
             layout.prop_search(eater_props, 'starting_point', bpy.data, "objects", text='')
         
@@ -242,6 +292,13 @@ class EATER_UI(bpy.types.Panel):
         
         row = layout.row()
         row.prop(eater_props, 'start_frame')
+        
+        frame_step = eater_props.frame_step
+        object_step = eater_props.object_step
+        start_frame = eater_props.start_frame
+        num_objs = len(scn.selected_objs)
+        end_frame = math.ceil((num_objs / (frame_step * object_step)) + start_frame - 1)
+        layout.label(text=f'End frame: {end_frame}')
         
         ### EXECUTION ###
         layout.separator()
