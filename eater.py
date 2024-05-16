@@ -297,7 +297,7 @@ class EATER_UI(bpy.types.Panel):
         object_step = eater_props.object_step
         start_frame = eater_props.start_frame
         num_objs = len(scn.selected_objs)
-        end_frame = math.ceil((num_objs / (frame_step * object_step)) + start_frame - 1)
+        end_frame = math.ceil(((num_objs / object_step) * frame_step) + start_frame - 1)
         layout.label(text=f'End frame: {end_frame}')
         
         ### EXECUTION ###
