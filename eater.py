@@ -7,6 +7,14 @@ bl_info = {
 import bpy
 import math
 import random
+import heapq
+import collections
+
+# refactor to take params as integers instead?
+def pythagorean_distance(obj1, obj2):
+    x1, y1, z1 = obj1.location.x, obj1.location.y, obj1.location.z
+    x2, y2, z2 = obj2.location.x, obj2.location.y, obj2.location.z
+    return math.sqrt(pow(x2-x1,2) + pow(y2-y1,2) + pow(z2-z1,2))
 
 class TreeNode:
     def __init__(self, x):
@@ -147,12 +155,98 @@ class EATER_execute(bpy.types.Operator):
                 item = scn.selected_objs[choices[i]]
                 obj = item.obj
                 
-                try:
-                    view_layer_obj = scn.objects[obj.name]
-                except:
+                if scn.objects.find(obj.name) == -1:
                     self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
                     continue
-                else:
+
+                obj.hide_render = start_visibility == 'INVISIBLE'
+                obj.hide_viewport = obj.hide_render
+                obj.keyframe_insert('hide_render', frame=buffer_frame)
+                obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                
+                obj.hide_render = not obj.hide_render
+                obj.hide_viewport = not obj.hide_viewport
+                obj.keyframe_insert('hide_render', frame=cur_frame)
+                obj.keyframe_insert('hide_viewport', frame=cur_frame)
+                
+                if (i + 1) % object_step == 0:
+                    cur_frame += frame_step
+                
+        # keyframing for location-based mode        
+        elif process_order == 'LOCATION':
+            
+            if scn.objects.find(starting_point.name) == -1:
+                self.report({'INFO'}, 'Cannot resolve starting point, %s was removed or deleted. No changes were made.' % starting_point.name)
+                return {'CANCELLED'}
+            
+            # find the index of the starting point
+            # if the starting point is not a selected object, get the index of the nearest object to the starting point
+            starting_idx = -1
+            closest_idx = -1
+            min_distance = math.inf
+            for i in range(len(scn.selected_objs)):
+                if scn.selected_objs[i].name == starting_point.name:
+                    starting_idx = i
+                    break
+                if scn.objects.find(scn.selected_objs[i].name) is not -1 and pythagorean_distance(starting_point, scn.selected_objs[i].obj) < min_distance:
+                    closest_idx = i
+                
+            if starting_idx == -1:
+                starting_idx = closest_idx
+            
+            # calculate the distance between every possible pair of objects (expensive)
+            n = len(scn.selected_objs)
+            cost_map = {i : [] for i in range(n)}
+            tree_map = {i : None for i in range(n)}
+            for i in range(n):
+                item1 = scn.selected_objs[i]
+                obj1 = item1.obj
+                tree_map[i] = TreeNode(obj1)
+                for j in range(i + 1, n):
+                    item2 = scn.selected_objs[j]
+                    obj2 = item2.obj
+                    cost = pythagorean_distance(obj1, obj2)
+                    cost_map[i].append([cost, j])
+                    cost_map[j].append([cost, i])  
+            
+            # prim's alg
+            visited = set()
+            pq = [[0,0,0]] # min heap, [cost, to object, from object]
+            while len(visited) < n:
+                cost, i, j = heapq.heappop(pq)
+                if i in visited:
+                    continue
+                if i != j:
+                    tree_map[i].nodes.append(j)
+                    tree_map[j].nodes.append(i)
+                visited.add(i)
+                for newcost, newobj in cost_map[i]:
+                    if newobj not in visited:
+                        heapq.heappush(pq, [newcost, newobj, i])
+                
+            # bfs
+            visited.clear()
+            q = collections.deque()
+            q.append(starting_idx)
+            
+            while q:
+                lenq = len(q) # i think python avoids re-evaluating the queue length by default but this is here just in case
+                for i in range(lenq):
+                    
+                    cur_idx = q.popleft()
+                    item = scn.selected_objs[cur_idx]
+                    obj = item.obj
+                    visited.add(cur_idx)
+                    
+                    for adj_idx in tree_map[cur_idx].nodes:
+                        if adj_idx in visited:
+                            continue
+                        q.append(adj_idx)
+                        
+                    if scn.objects.find(obj.name) == -1:
+                        self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
+                        continue
+                    
                     obj.hide_render = start_visibility == 'INVISIBLE'
                     obj.hide_viewport = obj.hide_render
                     obj.keyframe_insert('hide_render', frame=buffer_frame)
@@ -163,14 +257,9 @@ class EATER_execute(bpy.types.Operator):
                     obj.keyframe_insert('hide_render', frame=cur_frame)
                     obj.keyframe_insert('hide_viewport', frame=cur_frame)
                     
-                    if (i + 1) % object_step == 0:
+                    if len(visited) % object_step == 0:
                         cur_frame += frame_step
-                
-        # todo: keyframing for location-based mode        
-        elif process_order == 'LOCATION':
-            # find mst using prim's
-            # run bfs from starting_point obj
-            pass
+                        
                   
         return {'FINISHED'}
         
