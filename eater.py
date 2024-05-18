@@ -336,10 +336,8 @@ class EATER_UI(bpy.types.Panel):
         layout = self.layout
         eater_props = context.scene.eater_props
         
-        layout.separator()
-        
         ### OBJECT SELECTION ###
-        layout.label(text='Selected objects:')
+        layout.label(text=f'Selected objects: {len(scn.selected_objs)}')
         row = layout.row()
         row.template_list('EATER_OBJ_UL', 'OBJS', scn, 'selected_objs', scn, 'selected_objs_index', type='DEFAULT')
         
@@ -358,6 +356,7 @@ class EATER_UI(bpy.types.Panel):
         layout.separator()
         
         ### BATCHING CONTROLS ###
+        layout.label(text="Batching Controls:")
         row = layout.row()
         row.prop(eater_props, 'frame_step')
         
@@ -367,6 +366,7 @@ class EATER_UI(bpy.types.Panel):
         layout.separator()
         
         ### ALGORITHM CONTROLS ###
+        layout.label(text="Propogation:")
         row = layout.row()
         row.prop(eater_props, 'process_order', expand=True)
         if eater_props.process_order == 'LOCATION':
@@ -376,6 +376,7 @@ class EATER_UI(bpy.types.Panel):
         layout.separator()
         
         ### BEGIN-STATE CONFIGURATION ###
+        layout.label(text="Begin-state Configuration:")
         row = layout.row()
         row.prop(eater_props, 'start_visibility', expand=True)
         
