@@ -211,13 +211,11 @@ class EATER_execute(bpy.types.Operator):
             
             # prim's alg
             visited = set()
-            pq = [[0, starting_idx, starting_idx]] # min heap, [cost, to object, from object]
+            pq = [[0, 0, starting_idx, starting_idx]] # min heap, [cost, to object, from object]
+            priority = 1 # tiebreaker variable, when distances are equal it will pop the item that was added first
             while len(visited) < n:
                 
-                # for evenly spaced objects:
-                # dont push to the heap until the distance at top of the heap is different
-                
-                cost, i, j = heapq.heappop(pq)
+                cost, a, i, j = heapq.heappop(pq)
                 if i in visited:
                     continue
                 if i != j:
@@ -227,7 +225,8 @@ class EATER_execute(bpy.types.Operator):
                 
                 for newcost, newobj in cost_map[i]:
                     if newobj not in visited:
-                        heapq.heappush(pq, [newcost, newobj, i])
+                        heapq.heappush(pq, [newcost, priority, newobj, i])
+                        priority += 1
 
             # bfs
             visited.clear()
