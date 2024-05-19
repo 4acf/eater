@@ -211,8 +211,12 @@ class EATER_execute(bpy.types.Operator):
             
             # prim's alg
             visited = set()
-            pq = [[0,0,0]] # min heap, [cost, to object, from object]
+            pq = [[0, starting_idx, starting_idx]] # min heap, [cost, to object, from object]
             while len(visited) < n:
+                
+                # for evenly spaced objects:
+                # dont push to the heap until the distance at top of the heap is different
+                
                 cost, i, j = heapq.heappop(pq)
                 if i in visited:
                     continue
@@ -220,10 +224,11 @@ class EATER_execute(bpy.types.Operator):
                     tree_map[i].nodes.append(j)
                     tree_map[j].nodes.append(i)
                 visited.add(i)
+                
                 for newcost, newobj in cost_map[i]:
                     if newobj not in visited:
                         heapq.heappush(pq, [newcost, newobj, i])
-                
+
             # bfs
             visited.clear()
             q = collections.deque()
@@ -293,7 +298,7 @@ class EATER_Props(bpy.types.PropertyGroup):
         description = "Controls how many objects are simultaneously processed at every step",
         step = 1,
         min = 1,
-        soft_max = 10,
+        soft_max = 20,
         default = 1
     )
     
@@ -366,7 +371,7 @@ class EATER_UI(bpy.types.Panel):
         layout.separator()
         
         ### ALGORITHM CONTROLS ###
-        layout.label(text="Propogation:")
+        layout.label(text="Propagation:")
         row = layout.row()
         row.prop(eater_props, 'process_order', expand=True)
         if eater_props.process_order == 'LOCATION':
