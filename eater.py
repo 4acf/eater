@@ -432,8 +432,11 @@ class EATER_UI(bpy.types.Panel):
         row = layout.row()
         row.prop(eater_props, 'behavior', expand=True)
         if eater_props.behavior == 'FACES':
-            layout.prop(eater_props, 'build_length')
-            layout.prop(eater_props, 'build_random')
+            row = layout.row()
+            col1 = row.column()
+            col2 = row.column()
+            col1.prop(eater_props, 'build_random')
+            col2.prop(eater_props, 'build_length')
         
         layout.separator()
         
