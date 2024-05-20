@@ -10,6 +10,8 @@ import random
 import heapq
 import collections
 
+random.seed()
+
 # refactor to take params as integers instead?
 def pythagorean_distance(obj1, obj2):
     x1, y1, z1 = obj1.location.x, obj1.location.y, obj1.location.z
@@ -137,6 +139,12 @@ class EATER_execute(bpy.types.Operator):
             if starting_point == None:
                 self.report({'INFO'}, 'No starting point selected, no changes were made')
                 return {'CANCELLED'}
+        behavior = scn.eater_props.behavior
+        build_length = -1
+        build_random = False
+        if behavior == 'FACES':
+            build_length = scn.eater_props.build_length
+            build_random = scn.eater_props.build_random
         start_visibility = scn.eater_props.start_visibility
         cur_frame = scn.eater_props.start_frame
         buffer_frame = scn.eater_props.start_frame - 1
@@ -159,15 +167,24 @@ class EATER_execute(bpy.types.Operator):
                     self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
                     continue
 
-                obj.hide_render = start_visibility == 'INVISIBLE'
-                obj.hide_viewport = obj.hide_render
-                obj.keyframe_insert('hide_render', frame=buffer_frame)
-                obj.keyframe_insert('hide_viewport', frame=buffer_frame)
-                
-                obj.hide_render = not obj.hide_render
-                obj.hide_viewport = not obj.hide_viewport
-                obj.keyframe_insert('hide_render', frame=cur_frame)
-                obj.keyframe_insert('hide_viewport', frame=cur_frame)
+                if behavior == 'FACES':
+                    mod = obj.modifiers.new('Build', 'BUILD')
+                    mod.frame_duration = build_length
+                    mod.frame_start = cur_frame
+                    mod.use_reverse = start_visibility == 'VISIBLE'
+                    mod.use_random_order = build_random
+                    mod.seed = random.randrange(1, 1048574)
+
+                else:
+                    obj.hide_render = start_visibility == 'INVISIBLE'
+                    obj.hide_viewport = obj.hide_render
+                    obj.keyframe_insert('hide_render', frame=buffer_frame)
+                    obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                    
+                    obj.hide_render = not obj.hide_render
+                    obj.hide_viewport = not obj.hide_viewport
+                    obj.keyframe_insert('hide_render', frame=cur_frame)
+                    obj.keyframe_insert('hide_viewport', frame=cur_frame)
                 
                 if (i + 1) % object_step == 0:
                     cur_frame += frame_step
@@ -251,15 +268,24 @@ class EATER_execute(bpy.types.Operator):
                         self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
                         continue
                     
-                    obj.hide_render = start_visibility == 'INVISIBLE'
-                    obj.hide_viewport = obj.hide_render
-                    obj.keyframe_insert('hide_render', frame=buffer_frame)
-                    obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                    if behavior == 'FACES':
+                        mod = obj.modifiers.new('Build', 'BUILD')
+                        mod.frame_duration = build_length
+                        mod.frame_start = cur_frame
+                        mod.use_reverse = start_visibility == 'VISIBLE'
+                        mod.use_random_order = build_random
+                        mod.seed = random.randrange(1, 1048574)
                     
-                    obj.hide_render = not obj.hide_render
-                    obj.hide_viewport = not obj.hide_viewport
-                    obj.keyframe_insert('hide_render', frame=cur_frame)
-                    obj.keyframe_insert('hide_viewport', frame=cur_frame)
+                    else:
+                        obj.hide_render = start_visibility == 'INVISIBLE'
+                        obj.hide_viewport = obj.hide_render
+                        obj.keyframe_insert('hide_render', frame=buffer_frame)
+                        obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                        
+                        obj.hide_render = not obj.hide_render
+                        obj.hide_viewport = not obj.hide_viewport
+                        obj.keyframe_insert('hide_render', frame=cur_frame)
+                        obj.keyframe_insert('hide_viewport', frame=cur_frame)
                     
                     if len(visited) % object_step == 0:
                         cur_frame += frame_step
@@ -311,6 +337,27 @@ class EATER_Props(bpy.types.PropertyGroup):
     starting_point: bpy.props.PointerProperty(
         type = bpy.types.Object,
         description = 'Choose where the animation will propagate from'
+    )
+    
+    behavior: bpy.props.EnumProperty(
+        items = (
+                    ('DEFAULT', 'Default', 'Objects are toggled fully visible/fully invisible when affected'),
+                    ('FACES', 'By Face', 'Objects are turned visible/invisible gradually by face using build modifiers')
+                )
+    )
+   
+    build_length: bpy.props.IntProperty(
+        name = "Length",
+        description = "Controls the length of the build modifier effect",
+        step = 1,
+        min = 1,
+        default = 50
+    )
+    
+    build_random: bpy.props.BoolProperty(
+        name = "Randomize face order",
+        description = "Randomize the order of that faces are affected",
+        default = False
     )
     
     start_visibility: bpy.props.EnumProperty(
@@ -376,6 +423,17 @@ class EATER_UI(bpy.types.Panel):
         if eater_props.process_order == 'LOCATION':
             layout.label(text='Starting point:')
             layout.prop_search(eater_props, 'starting_point', bpy.data, "objects", text='')
+        
+        layout.separator()
+        
+        
+        ### BEHAVIOR ###
+        layout.label(text="Behavior:")
+        row = layout.row()
+        row.prop(eater_props, 'behavior', expand=True)
+        if eater_props.behavior == 'FACES':
+            layout.prop(eater_props, 'build_length')
+            layout.prop(eater_props, 'build_random')
         
         layout.separator()
         
