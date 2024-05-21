@@ -1,6 +1,10 @@
 # eater
 Eater is a blender addon that automatically creates staggered keyframes for toggling the visibility on groups of objects. It comes with a wide range of customizable parameters to fit whatever effect you're going for.
 
+<p align="center">
+  <img src="demos/eater_ui.png">
+</p>
+
 <br>
 
 ## Installation
@@ -16,6 +20,15 @@ Download eater.py, open it in the text editor within blender and press the play 
 
 ### Propagation
 `Random` will toggle objects on/off in a random order over time. `Location-based` allows you to select where the first affected object is, and the rest of the effect will spread from that point.
+
+
+<p align="center">
+  <img src="demos/demo_random.gif" width="100" height="100" />
+</p>
+
+<p align="center">
+  <img src="demos/demo_location.gif" width="100" height="100" />
+</p>
 
 ### Behavior
 `Default` specifies the normal behavior of making an object go from fully visible to invisible (or vice versa).
@@ -37,3 +50,10 @@ The location-based mode can be very time consuming with many objects selected as
 Please feel free to report any issues or suggestions in the issues page!
 
 ## Demo
+
+<p align="center">
+  <img src="demos/demo_map.gif" />
+</p>
+
+Here it is on a TF2 map with >8000 objects. On my machine it took roughly 2 seconds to complete.
+
