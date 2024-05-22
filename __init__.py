@@ -390,7 +390,7 @@ class EATER_PT_UI(bpy.types.Panel):
         ### OBJECT SELECTION ###
         layout.label(text=f'Selected objects: {len(scn.selected_objs)}')
         row = layout.row()
-        row.template_list('EATER_OBJ_UL', 'OBJS', scn, 'selected_objs', scn, 'selected_objs_index', type='DEFAULT')
+        row.template_list('EATER_UL_OBJ', 'OBJS', scn, 'selected_objs', scn, 'selected_objs_index', type='DEFAULT')
         
         row = layout.row()
         row.operator('eater.add_selected_objs', icon='ADD')
