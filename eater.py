@@ -295,7 +295,7 @@ class EATER_execute(bpy.types.Operator):
         
 ### UI
 
-class EATER_OBJ_UL(bpy.types.UIList):
+class EATER_UL_OBJ(bpy.types.UIList):
     
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         
@@ -374,7 +374,7 @@ class EATER_Props(bpy.types.PropertyGroup):
         default = 1
     )
 
-class EATER_UI(bpy.types.Panel):
+class EATER_PT_UI(bpy.types.Panel):
     
     bl_label = 'eater'
     bl_category = 'eater'
@@ -475,9 +475,9 @@ classes = [
     EATER_remove_selected_objs_viewport,
     EATER_clear_list, 
     EATER_execute,
-    EATER_UI, 
+    EATER_PT_UI, 
     EATER_Props, 
-    EATER_OBJ_UL, 
+    EATER_UL_OBJ, 
     EATER_PG_OBJ_Collection
 ]
 
