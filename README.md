@@ -22,7 +22,7 @@ There are two options:
 `Object Step`: Controls how many objects will be keyframed per framestep. For example, if object step is 4, 4 objects will be toggled on/off on the same frame.
 
 ### Propagation
-`Random` will toggle objects on/off in a random order over time. `Location-based` allows you to select where the first affected object is, and the rest of the effect will spread from that point.
+`Random` will toggle objects on/off in a random order over time. `Location-based` allows you to select where the first affected object is, and the rest of the effect will spread from that point. `Experimental` uses path finding algorithms to find the shortest path between every object and traverse through them this way. Shown here are the random and location-based modes (in this example Experimental will have the same result as location-based given the starting point is the same):
 
 
 <p align="center">
@@ -48,7 +48,8 @@ Specify the frame where the effect will start with `Start Frame`.
 <br>
 
 ## Notes
-The location-based mode can be very time consuming with many objects selected as it relies on possible millions of edge calculations to construct a minimum spanning tree. Blender may become unresponsive as a result.
+The experimental mode can be very time consuming and very memory-demanding with many objects selected as it relies on possible millions of edge calculations to construct a minimum spanning tree. Blender may become unresponsive as a result.
+The results from the experimental mode are also very unpredictable so try messing with different starting positions to see which one gives you the best effect (if of course the processing time isn't long enough to dissuade you from doing this).
 
 Please feel free to report any issues or suggestions in the issues page!
 
