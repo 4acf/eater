@@ -134,7 +134,7 @@ class EATER_execute(bpy.types.Operator):
         object_step = scn.eater_props.object_step
         process_order = scn.eater_props.process_order
         starting_point = None
-        if process_order == 'LOCATION':
+        if process_order in ['LOCATION', 'EXPERIMENTAL']:
             starting_point = scn.eater_props.starting_point
             if starting_point == None:
                 self.report({'INFO'}, 'No starting point selected, no changes were made')
@@ -188,16 +188,80 @@ class EATER_execute(bpy.types.Operator):
                 
                 if (i + 1) % object_step == 0:
                     cur_frame += frame_step
-                
-        # keyframing for location-based mode        
+        
         elif process_order == 'LOCATION':
+            if scn.objects.find(starting_point.name) == -1:
+                self.report({'INFO'}, 'Cannot resolve starting point, %s was removed or deleted. No changes were made.' % starting_point.name)
+                return {'CANCELLED'}
+           
+            # find the index of the starting point
+            # if the starting point is not a selected object, get the index of the nearest object to the starting point
+            starting_idx = -1
+            closest_idx = -1
+            min_distance = math.inf
+            for i in range(len(scn.selected_objs)):
+                if scn.selected_objs[i].name == starting_point.name:
+                    starting_idx = i
+                    break
+                if scn.objects.find(scn.selected_objs[i].name) is not -1 and pythagorean_distance(starting_point, scn.selected_objs[i].obj) < min_distance:
+                    closest_idx = i
+                
+            if starting_idx == -1:
+                starting_idx = closest_idx
+                
+            # get distance from starting point to every other object and put it on a heap
+            pq = [[0, starting_idx]]
+            item1 = scn.selected_objs[starting_idx]
+            obj1 = item1.obj
+            for i in range(len(scn.selected_objs)):
+                item2 = scn.selected_objs[i]
+                obj2 = item2.obj
+                cost = pythagorean_distance(obj1, obj2)
+                if cost is not 0:
+                    heapq.heappush(pq, [cost, i])
+            
+            # loop until heap is empty
+            processed = 0
+            while pq:
+                distance, idx = heapq.heappop(pq)
+                processed += 1
+                item = scn.selected_objs[idx]
+                obj = item.obj
+                if scn.objects.find(obj.name) == -1:
+                        self.report({'INFO'}, '%s was renamed or deleted' % obj.name)
+                        continue
+                    
+                if behavior == 'FACES':
+                    mod = obj.modifiers.new('Build', 'BUILD')
+                    mod.frame_duration = build_length
+                    mod.frame_start = cur_frame
+                    mod.use_reverse = start_visibility == 'VISIBLE'
+                    mod.use_random_order = build_random
+                    mod.seed = random.randrange(1, 1048574)
+                    
+                else:
+                    obj.hide_render = start_visibility == 'INVISIBLE'
+                    obj.hide_viewport = obj.hide_render
+                    obj.keyframe_insert('hide_render', frame=buffer_frame)
+                    obj.keyframe_insert('hide_viewport', frame=buffer_frame)
+                        
+                    obj.hide_render = not obj.hide_render
+                    obj.hide_viewport = not obj.hide_viewport
+                    obj.keyframe_insert('hide_render', frame=cur_frame)
+                    obj.keyframe_insert('hide_viewport', frame=cur_frame)
+                    
+                if (processed + 1) % object_step == 0:
+                    cur_frame += frame_step
+           
+           
+        # keyframing for experimental mode        
+        elif process_order == 'EXPERIMENTAL':
             
             if scn.objects.find(starting_point.name) == -1:
                 self.report({'INFO'}, 'Cannot resolve starting point, %s was removed or deleted. No changes were made.' % starting_point.name)
                 return {'CANCELLED'}
             
-            # find the index of the starting point
-            # if the starting point is not a selected object, get the index of the nearest object to the starting point
+            # resolving starting point
             starting_idx = -1
             closest_idx = -1
             min_distance = math.inf
@@ -330,7 +394,8 @@ class EATER_Props(bpy.types.PropertyGroup):
     process_order: bpy.props.EnumProperty(
         items = (
                     ('RANDOM', 'Random', 'The next objects to be affected are chosen at random'),
-                    ('LOCATION', 'Location-based', 'The next objects to be affected are based on proximity to the last affected objects')
+                    ('LOCATION', 'Location-based', 'The next objects to be affected are based on proximity to the last affected objects'),
+                    ('EXPERIMENTAL', 'Experimental', 'The next objects to be affected are based on a generated path')
                 )
     )
     
@@ -420,7 +485,7 @@ class EATER_PT_UI(bpy.types.Panel):
         layout.label(text="Propagation:")
         row = layout.row()
         row.prop(eater_props, 'process_order', expand=True)
-        if eater_props.process_order == 'LOCATION':
+        if eater_props.process_order in ['LOCATION', 'EXPERIMENTAL']:
             layout.label(text='Starting point:')
             layout.prop_search(eater_props, 'starting_point', bpy.data, "objects", text='')
         
