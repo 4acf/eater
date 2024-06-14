@@ -8,7 +8,10 @@ Eater is a blender addon that automatically creates staggered keyframes for togg
 <br>
 
 ## Installation
-Download eater.py, open it in the text editor within blender and press the play button at the top bar. Press 'n' in object mode in the main viewport and navigate to the eater tab.
+There are two options:
+1. (Recommended) Download the latest release from the release tab, put the zip somewhere you will remember (don't extract). In blender go to Edit->Preferences, install the zip, and save.
+
+2. Download eater.py, open it in the text editor within blender and press the play button at the top bar. Press 'n' in object mode in the main viewport and navigate to the eater tab.
 
 <br>
 
