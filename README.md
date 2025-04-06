@@ -43,7 +43,7 @@ There are two options:
 You can choose whether you want objects to gradually appear (`Start Invisible`) or gradually disappear (`Start Visible`) over time. These settings are also automatically applied to the Build modifiers if `By Face` is the selected behavior.
 Specify the frame where the effect will start with `Start Frame`. 
 > [!WARNING]
-> For every selected object, a keyframe will be places at `Start Frame - 1` so make sure that the keyframes created by the addon do not interfere with existing keyframes.
+> For every selected object, a keyframe will be placed at `Start Frame - 1` so make sure that the keyframes created by the addon do not interfere with existing keyframes.
 
 <br>
 
